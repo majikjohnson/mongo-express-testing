@@ -1,0 +1,34 @@
+{
+  "name": "mongo-express-testing",
+  "version": "1.0.0",
+  "description": "A demonstration of how to set up a Mocha/Chai/Supertest test environment for an Express/Mongo application",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.7.3"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.2.1",
+    "mongodb-memory-server": "^5.2.6",
+    "supertest": "^4.0.2"
+  },
+  "scripts": {
+    "server": "node server/server.js",
+    "test": "mocha --timeout 60000 --recursive"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/majikjohnson/mongo-express-testing.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/majikjohnson/mongo-express-testing/issues"
+  },
+  "homepage": "https://github.com/majikjohnson/mongo-express-testing#readme"
+}
