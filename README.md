@@ -175,19 +175,65 @@ Now that we have finished building the app, it is time to add the required testi
 npm install -D mocha chai supertest mongodb-memory-server
 ```
 
-### Create the folder 'test' in the project root to hold our Mocha tests
+### Create the folder 'test' in the project root.  This will hold our tests and support files
 
-### Create the folder structure 'integration/routes' inside 'test' to hold the tests relating to our server application
-
-### Inside 'test/integration' folder, create a test file called users.test.js
+### Create the following folder structure inside test
 ```
-// Bring in the dependencies for testing
+test
+- fixtures
+- integration
+- support
+```
+**fixtures** - this will hold test data files
+**integration** - this will hold our actual test files
+**support** - this will hold test helper files
+
+### Create a test data file called user.data.js in test/fixtures
+```
+module.exports = {
+    mickeyMouse: {
+        name: "Mickey Mouse",
+        email: "mmouse@nascentpixels.io",
+        password: "abc123"
+    },
+    donaldDuck: {
+        name: "Donald Duck",
+        email: "dduck@nascentpixels.io",
+        password: "abc123"
+    }
+}
+```
+
+### Create a helper file called mongoLoder.js in test/support. It contains one function for inserting data using the User model
+```
+const User = require('../../server/models/User');
+
+const insertUser = async (user) => {
+    try {
+        const newUser = new User(user);
+        await newUser.save();    
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+module.exports = insertUser;
+```
+
+### Inside 'test/integration' folder, create a folder called 'routes' and add a test file called users.test.js inside 'routes'
+```
+// Import npm packages required for testing
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
-// Import server/app.js
+// Import server/app.js (the application entry point for our tests)
 const app = require('../../../server/app');
+
+// Import the support and fixture files
+const insertUser = require('../../support/mongoLoader');
+const userTestData = require('../../fixtures/user.data');
 
 // Set up the MongoDB options (same options as used in the application)
 let mongoServer;
@@ -221,24 +267,34 @@ after(async () => {
 // The tests will use MongoMemoryServer instead of the instance of Mongo declared in db.js
 describe('User routes', () => {
     it('should allow the user to register', (done) => {
+        // Arrange: Destructure the test data from user.data test fixture file
+        const {name, email, password } = userTestData.mickeyMouse;
+
+        // Act: Use supertest to make a request to the API
         request(app).post('/api/users/')
             .set('Accept', 'application/json')
             .send({
-                name: "Mickey Mouse",
-                email: "mmouse@nascentpixels.io",
-                password: "abc123"
+                name,
+                email,
+                password
             })
             .expect(200, done);
     });
 
-    //REFACTOR THIS - BAD TEST AS RELIES ON STATE FROM PREVIOUS TEST
     it('should not allow a duplicate user to register', (done) => {
+        // Arrange
+        // Destructure the test data from user.data test fixture file
+        const {name, email, password } = userTestData.donaldDuck;
+        // Insert the test data into the database as we want to test that requests for duplicates is handled correctly
+        insertUser(userTestData.donaldDuck);
+        
+        // Act: Use supertest to make a request to the API
         request(app).post('/api/users/')
             .set('Accept', 'application/json')
             .send({
-                name: "Mickey Mouse",
-                email: "mmouse@nascentpixels.io",
-                password: "abc123"
+                name,
+                email,
+                password
             })
             .expect(400, {
                 msg: 'User already exists in database'
