@@ -1,8 +1,13 @@
 # mongo-express-testing
-A demonstration of how to set up a Mocha/Chai/Supertest test environment for an Express/Mongo application
+A demonstration of how to set up a Mocha/Chai/Supertest test environment for an Express/Mongo application.
+
+The application being tested connects to a MongoDB store hosted in the cloud.  We don't want to connect to this DB when we are running our tests.  This would be slow, and subject to network issues.  We will therefore run our tests using a local MongoDB server that is run in memory.  As well as being faster/more reliable, the fact that it created/destroyed at the start/end of each test run means that we can precisely control the state/data in the database, making our tests repeatable without a lot of data manipulation.
 
 ## How to run the GitHub project
 If you just want to download and run the boilerplate project, then follow the instructions below
+
+### Prerequisites
+This GitHub project contains the file server/db.js.  This contains a connection string to a MongoDB instance. You will either need to install a local instance, or connect to an instance in the cloude (e.g. MongoDB Atlas).
 
 ### 1. Clone the repo
 ```
