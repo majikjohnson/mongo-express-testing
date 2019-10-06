@@ -1,4 +1,8 @@
 # mongo-express-testing
+
+!!!!!!!!!!!Update for mongoMemSvrHelper!!!!!!!!!!!!!!!!!
+
+
 A demonstration of how to set up a Mocha/Chai/Supertest test environment for an Express/Mongo application.
 
 The application being tested connects to a MongoDB store hosted in the cloud.  We don't want to connect to this DB when we are running our tests.  This would be slow, and subject to network issues.  We will therefore run our tests using a local MongoDB server that is run in memory.  As well as being faster/more reliable, the fact that it created/destroyed at the start/end of each test run means that we can precisely control the state/data in the database, making our tests repeatable without a lot of data manipulation.
@@ -209,64 +213,76 @@ module.exports = {
 }
 ```
 
-### Create a helper file called mongoLoder.js in test/support. It contains one function for inserting data using the User model
+### Create a helper file called mongoMemSvrHelper.js in test/support.
 ```
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Import the User model
 const User = require('../../server/models/User');
 
-const insertUser = async (user) => {
-    try {
-        const newUser = new User(user);
-        await newUser.save();    
-    } catch (error) {
-        console.error(error);
-        throw error;
+module.exports = {
+    // Starts the MongoDB in-memory server
+    startServer: () => {
+        mongoServer = new MongoMemoryServer();
+        mongoServer
+            .getConnectionString()
+            .then((mongoUri) => {
+                return mongoose.connect(mongoUri, {
+                    useNewUrlParser: true,
+                    useCreateIndex: true,
+                    useFindAndModify: false,
+                    useUnifiedTopology: true
+                }, (err) => {
+                    if (err) throw err;
+                });
+            });
+        return mongoServer;
+    },
+
+    // Stops the MongoDB in-memory server
+    stopServer: async (mongoServer) => {
+        await mongoose.disconnect();
+        await mongoServer.stop();
+    },
+
+    // Inserts the given user into the DB
+    insertUser: async (user) => {
+        try {
+            const newUser = new User(user);
+            await newUser.save();    
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
     }
 }
-
-module.exports = insertUser;
 ```
 
 ### Inside 'test/integration' folder, create a folder called 'routes' and add a test file called users.test.js inside 'routes'
 ```
-// Import npm packages required for testing
 const request = require('supertest');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 
 // Import server/app.js (the application entry point for our tests)
 const app = require('../../../server/app');
 
 // Import the support and fixture files
-const insertUser = require('../../support/mongoLoader');
+const mongoMemSvrHelper = require('../../support/mongoMemSvrHelper');
 const userTestData = require('../../fixtures/user.data');
+
 
 // Set up the MongoDB options (same options as used in the application)
 let mongoServer;
-const opts = {
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-    useUnifiedTopology: true
-}
 
 // Wrap the mongoose.connect call with MongoMemoryServer.  This is in the 'before' hook, so runs once, before any tests are executed.
 before((done) => {
-    mongoServer = new MongoMemoryServer();
-    mongoServer
-        .getConnectionString()
-        .then((mongoUri) => {
-            return mongoose.connect(mongoUri, opts, (err) => {
-                if (err) done(err);
-            });
-        })
-        .then(() => done());
-        
+    mongoServer = mongoMemSvrHelper.startServer();
+    done();
 });
 
 // Disconnect Mongoose and shut down MongoMemoryServer
 after(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    mongoMemSvrHelper.stopServer(mongoServer);
 });
 
 // The tests will use MongoMemoryServer instead of the instance of Mongo declared in db.js
